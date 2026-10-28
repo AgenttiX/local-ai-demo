@@ -3,3 +3,6 @@
 {"t":1793222557304,"agent":"studio","type":"info","text":"node 26.13 now the default runtime (25 was EOL)"}
 {"t":1793222579310,"agent":"qa","type":"test","text":"playtest FAIL — studio hook present; game starts via __studio.start(); game runs and responds to input; no page errors (shots: 3)"}
 {"t":1793222753708,"agent":"qa","type":"test","text":"playtest PASS — all checks passed (shots: 3)"}
+{"t":1793223685569,"agent":"studio","type":"milestone","text":"Live run started — brief in studio/prompt.txt; architect takes the wheel"}
+{"t":1793223808237,"agent":"architect","type":"decision","text":"Stardust design locked: 960x540 top-down neon dodger; 8-way ship in bottom band (y 310-516, speed 360px/s, hitbox r11); asteroids fall top-down r12-28 with drift+spin, spawn interval 0.9s->0.38s over ~78s; stardust orbs +25pts with sway; score +10/s survived; 3 lives w/ 1.6s blink invuln + 8px shake on hit; speed mult 1+min(1.2,t/90) capped; no asteroids before t=1.5s; title->play->over state mach"}
+{"t":1793223824379,"agent":"architect","type":"milestone","text":"design done: Stardust — 960x540 neon dodger, asteroid stream + stardust pickups, 3 lives w/ invuln, scaling difficulty, title/play/over states, __studio hook; full spec in studio/plan.md"}
