@@ -1,84 +1,580 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>STUDIO — under construction</title>
+<title>STARDUST</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #05070c; overflow: hidden; }
-  #wrap { height: 100%; display: grid; place-items: center; padding: 12px; }
-  /* contract: the canvas must scale into any container (dashboard iframe or full window) */
-  canvas { background: #0a0e14; box-shadow: 0 0 60px rgba(14,116,144,.25); max-width: 100%; height: auto; }
+  html, body { margin: 0; padding: 0; background: #05070c; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
 </style>
 </head>
 <body>
-<div id="wrap"><canvas id="c" width="960" height="540"></canvas></div>
+<canvas id="game" width="960" height="540"></canvas>
 <script>
-// ============================================================================
-// STUB — proves the studio pipeline (render, input, test hook). The engineer
-// replaces this whole file with the real game from studio/plan.md.
-// ============================================================================
-const cv = document.getElementById("c"), ctx = cv.getContext("2d");
-const W = cv.width, H = cv.height;
-let running = false, over = false, score = 0, lives = 3, t = 0;
-const ship = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
-const stars = Array.from({ length: 120 }, () => ({
-  x: Math.random() * W, y: Math.random() * H, s: Math.random() * 1.6 + 0.3,
-}));
-const keys = {};
-addEventListener("keydown", e => {
-  keys[e.key] = true;
-  if ((e.key === "Enter" || e.key === " ") && !running && !over) start();
-  if (e.key === "r" && over) start();
-});
-addEventListener("keyup", e => delete keys[e.key]);
-addEventListener("mousedown", () => { if (!running && !over) start(); });
+"use strict";
+(function () {
+  var canvas = document.getElementById("game");
+  var ctx = canvas.getContext("2d");
+  var W = 960, H = 540;
+  var FONT = 'ui-monospace, "Courier New", monospace';
 
-function start() { running = true; over = false; score = 0; lives = 3; t = 0; }
-window.__studio = { start, state: () => ({ running, score, lives, over }) };
+  // ---------- state ----------
+  var mode = "title";            // title | play | over
+  var score = 0;                 // fractional accumulator, floored for display
+  var lives = 3;
+  var t = 0;                     // seconds since run started
+  var clock = 0;                 // free-running clock for pulses (all modes)
 
-function frame() {
-  if (running) {
-    t++;
-    score = Math.floor(t / 30);
-    ship.vx = (keys["ArrowRight"] ? 4 : 0) - (keys["ArrowLeft"] ? 4 : 0);
-    ship.vy = (keys["ArrowDown"] ? 4 : 0) - (keys["ArrowUp"] ? 4 : 0);
-    ship.x = Math.max(10, Math.min(W - 10, ship.x + ship.vx));
-    ship.y = Math.max(10, Math.min(H - 10, ship.y + ship.vy));
+  var ship = { x: W / 2, y: 470, r: 11 };
+  var asteroids = [];
+  var dusts = [];
+  var particles = [];            // {x,y,vx,vy,life,maxLife,size,color}
+  var pops = [];                 // floating "+25" texts
+  var rings = [];                // expanding ring flashes
+
+  var invuln = 0;                // seconds of invulnerability remaining
+  var shake = 0;                 // seconds of screen shake remaining
+  var flash = 0;                 // seconds of red vignette remaining
+  var astTimer = 0;              // asteroid spawn timer
+  var dustTimer = 0;             // stardust spawn timer
+
+  var keys = new Set();
+
+  // ---------- starfield (2 parallax layers, drifts in every mode) ----------
+  var starsFar = [], starsNear = [];
+  (function makeStars() {
+    var i;
+    for (i = 0; i < 60; i++) starsFar.push({ x: Math.random() * W, y: Math.random() * H });
+    for (i = 0; i < 30; i++) starsNear.push({ x: Math.random() * W, y: Math.random() * H, b: false });
+    for (i = 0; i < 6; i++) starsNear.push({ x: Math.random() * W, y: Math.random() * H, b: true });
+  })();
+
+  // ---------- helpers ----------
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+  function diffMult() { return 1 + Math.min(1.2, t / 90); }
+  function pad6(n) { return String(Math.min(999999, Math.max(0, n))).padStart(6, "0"); }
+  function fmtTime(sec) {
+    var s = Math.floor(sec);
+    return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
   }
-  // draw
-  ctx.fillStyle = "#0a0e14";
-  ctx.fillRect(0, 0, W, H);
-  ctx.fillStyle = "#8aa2c8";
-  for (const s of stars) {
-    ctx.globalAlpha = 0.3 + 0.5 * ((Math.sin(t * 0.01 + s.x) + 1) / 2);
-    ctx.fillRect(s.x, s.y, s.s, s.s);
+
+  // ---------- spawning ----------
+  function spawnAsteroid(x) {
+    var r = rand(12, 28);
+    var jit = [], spk = [], i;
+    for (i = 0; i < 8; i++) jit.push(rand(0.8, 1.2));
+    for (i = 0; i < 3; i++) spk.push({ a: rand(0, Math.PI * 2), d: rand(0.15, 0.55) });
+    asteroids.push({
+      x: x, y: -30, r: r,
+      vy: (110 + Math.random() * 100) * diffMult(),
+      vx: rand(-50, 50),
+      spin: rand(-2, 2),
+      rot: rand(0, Math.PI * 2),
+      jit: jit, spk: spk
+    });
   }
-  ctx.globalAlpha = 1;
-  if (!running) {
-    ctx.textAlign = "center";
-    ctx.fillStyle = "#67e8f9";
-    ctx.font = "bold 34px monospace";
-    ctx.fillText("GAME UNDER CONSTRUCTION", W / 2, H / 2 - 20);
-    ctx.fillStyle = "#5b6b85";
-    ctx.font = "16px monospace";
-    ctx.fillText("the engineer is building the real game — press Enter to poke the stub", W / 2, H / 2 + 16);
-  } else {
-    ctx.fillStyle = "#22d3ee";
+
+  function spawnAsteroidTick() {
+    var roll = Math.random();
+    var n = roll < 0.60 ? 1 : (roll < 0.85 ? 2 : 3);
+    var base = rand(140, W - 140), d, s;
+    if (n === 1) {
+      spawnAsteroid(base);
+    } else if (n === 2) {
+      d = rand(70, 180); s = Math.random() < 0.5 ? -1 : 1;
+      spawnAsteroid(clamp(base, 30, W - 30));
+      spawnAsteroid(clamp(base + s * d, 30, W - 30));
+    } else {
+      d = rand(90, 160);
+      spawnAsteroid(clamp(base - d, 30, W - 30));
+      spawnAsteroid(clamp(base, 30, W - 30));
+      spawnAsteroid(clamp(base + d, 30, W - 30));
+    }
+  }
+
+  function spawnDust() {
+    var bx = clamp(rand(30, W - 30), 30, W - 30);
+    dusts.push({
+      baseX: bx, x: bx, y: -30, r: 7,
+      vy: rand(130, 200),
+      f: rand(1, 2),            // sway frequency, Hz
+      amp: 20,
+      ph: rand(0, Math.PI * 2),
+      td: 0
+    });
+  }
+
+  // ---------- fx ----------
+  function shatter(a) {
+    var n = 12 + Math.floor(Math.random() * 7), i, ang, sp;
+    for (i = 0; i < n; i++) {
+      ang = Math.random() * Math.PI * 2;
+      sp = rand(60, 240);
+      particles.push({
+        x: a.x, y: a.y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        life: rand(0.45, 0.9), maxLife: 0.9,
+        size: rand(2, 4),
+        color: i % 2 ? "#8b93a7" : "#334155"
+      });
+    }
+  }
+
+  function collectDust(d) {
+    var i, ang, sp;
+    for (i = 0; i < 10; i++) {
+      ang = Math.random() * Math.PI * 2;
+      sp = rand(80, 220);
+      particles.push({
+        x: d.x, y: d.y,
+        vx: Math.cos(ang) * sp, vy: Math.sin(ang) * sp,
+        life: rand(0.35, 0.7), maxLife: 0.7,
+        size: rand(1.5, 3),
+        color: i % 2 ? "#fbbf24" : "#fde68a"
+      });
+    }
+    rings.push({ x: d.x, y: d.y, life: 0.3, maxLife: 0.3 });
+    pops.push({ x: d.x, y: d.y, life: 0.9, maxLife: 0.9 });
+  }
+
+  // ---------- run control ----------
+  function startRun() {
+    mode = "play";
+    score = 0; lives = 3; t = 0;
+    asteroids = []; dusts = []; particles = []; pops = []; rings = [];
+    ship.x = W / 2; ship.y = 470;
+    invuln = 0; shake = 0; flash = 0;
+    astTimer = 0; dustTimer = 0;
+  }
+
+  // ---------- input ----------
+  function normKey(e) {
+    var k = (typeof e.key === "string") ? e.key : "";
+    return k.length === 1 ? k.toLowerCase() : k;
+  }
+
+  window.addEventListener("keydown", function (e) {
+    var k = normKey(e);
+    if (k === "ArrowLeft" || k === "ArrowRight" || k === "ArrowUp" || k === "ArrowDown" || k === " ") {
+      e.preventDefault();
+    }
+    keys.add(k);
+    if (mode !== "play" && (k === "Enter" || k === " ")) startRun();
+  });
+  window.addEventListener("keyup", function (e) { keys.delete(normKey(e)); });
+  window.addEventListener("blur", function () { keys.clear(); });
+  window.addEventListener("click", function () {
+    if (mode !== "play") startRun();
+  });
+
+  // ---------- update ----------
+  function update(dt) {
+    clock += dt;
+
+    // starfield drifts in every mode (including 'over')
+    var i, s;
+    for (i = 0; i < starsFar.length; i++) {
+      s = starsFar[i]; s.y += 12 * dt; if (s.y > H) { s.y -= H; s.x = Math.random() * W; }
+    }
+    for (i = 0; i < starsNear.length; i++) {
+      s = starsNear[i]; s.y += 30 * dt; if (s.y > H) { s.y -= H; s.x = Math.random() * W; }
+    }
+
+    if (mode !== "play") return;   // title/over: no entity updates
+
+    t += dt;
+    score += 10 * dt;
+
+    // ship movement (8-way, normalized)
+    var dx = (keys.has("ArrowRight") || keys.has("d") ? 1 : 0) - (keys.has("ArrowLeft") || keys.has("a") ? 1 : 0);
+    var dy = (keys.has("ArrowDown") || keys.has("s") ? 1 : 0) - (keys.has("ArrowUp") || keys.has("w") ? 1 : 0);
+    if (dx || dy) {
+      var l = Math.hypot(dx, dy);
+      ship.x += dx / l * 360 * dt;
+      ship.y += dy / l * 360 * dt;
+    }
+    ship.x = clamp(ship.x, 16, 944);
+    ship.y = clamp(ship.y, 310, 516);
+
+    // engine trail: 2-3 fading cyan particles/frame from the rear
+    var n = 2 + (Math.random() < 0.5 ? 1 : 0);
+    for (i = 0; i < n; i++) {
+      var life = rand(0.25, 0.45);
+      particles.push({
+        x: ship.x + rand(-3, 3), y: ship.y + 11,
+        vx: rand(-20, 20), vy: rand(60, 130),
+        life: life, maxLife: life,
+        size: rand(1.5, 3.5), color: "#22d3ee"
+      });
+    }
+
+    // spawning
+    if (t >= 1.5) {               // no asteroids before t = 1.5s
+      astTimer -= dt;
+      if (astTimer <= 0) {
+        spawnAsteroidTick();
+        astTimer = Math.max(0.38, 0.9 - t / 150);
+      }
+    }
+    dustTimer -= dt;
+    if (dustTimer <= 0) {
+      spawnDust();
+      dustTimer = Math.max(0.8, 1.6 - t / 200);
+    }
+
+    // asteroids
+    for (i = asteroids.length - 1; i >= 0; i--) {
+      var a = asteroids[i];
+      a.x += a.vx * dt; a.y += a.vy * dt; a.rot += a.spin * dt;
+      if (a.y > 570 || a.x < -80 || a.x > W + 80) { asteroids.splice(i, 1); continue; }
+      if (invuln <= 0) {
+        var ddx = a.x - ship.x, ddy = a.y - ship.y;
+        var rr = a.r + ship.r;
+        if (ddx * ddx + ddy * ddy < rr * rr) {
+          asteroids.splice(i, 1);
+          shatter(a);
+          lives -= 1;
+          invuln = 1.6; shake = 0.4; flash = 0.2;
+          if (lives <= 0) { mode = "over"; return; }
+        }
+      }
+    }
+
+    // stardust
+    for (i = dusts.length - 1; i >= 0; i--) {
+      var d = dusts[i];
+      d.td += dt;
+      d.y += d.vy * dt;
+      d.x = d.baseX + d.amp * Math.sin(d.ph + Math.PI * 2 * d.f * d.td);
+      if (d.y > 570) { dusts.splice(i, 1); continue; }
+      var qdx = d.x - ship.x, qdy = d.y - ship.y;
+      var qr = d.r + ship.r;
+      if (qdx * qdx + qdy * qdy < qr * qr) {
+        dusts.splice(i, 1);
+        score += 25;
+        collectDust(d);
+      }
+    }
+
+    // particles / rings / pops
+    for (i = particles.length - 1; i >= 0; i--) {
+      var p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.x += p.vx * dt; p.y += p.vy * dt;
+    }
+    for (i = rings.length - 1; i >= 0; i--) {
+      rings[i].life -= dt;
+      if (rings[i].life <= 0) rings.splice(i, 1);
+    }
+    for (i = pops.length - 1; i >= 0; i--) {
+      var po = pops[i];
+      po.life -= dt;
+      if (po.life <= 0) { pops.splice(i, 1); continue; }
+      po.y -= 34 * dt;
+    }
+
+    // timers
+    if (invuln > 0) invuln -= dt;
+    if (shake > 0) shake -= dt;
+    if (flash > 0) flash -= dt;
+  }
+
+  // ---------- render ----------
+  var bgGrad = null;
+  function makeGrads() {
+    bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#0a0e14");
+    bgGrad.addColorStop(1, "#101a2e");
+  }
+  makeGrads();
+
+  var vigGrad = null;
+  (function () {
+    vigGrad = ctx.createRadialGradient(W / 2, H / 2, 180, W / 2, H / 2, 620);
+    vigGrad.addColorStop(0, "rgba(244,63,94,0)");
+    vigGrad.addColorStop(1, "rgba(244,63,94,0.6)");
+  })();
+
+  function drawStars() {
+    var i;
+    ctx.fillStyle = "#3b4a66";
+    for (i = 0; i < starsFar.length; i++) ctx.fillRect(starsFar[i].x, starsFar[i].y, 1, 1);
+    for (i = 0; i < starsNear.length; i++) {
+      var s = starsNear[i];
+      ctx.fillStyle = s.b ? "#cfe3ff" : "#7d90b8";
+      var sz = s.b ? 2.5 : 1.5;
+      ctx.fillRect(s.x, s.y, sz, sz);
+    }
+  }
+
+  function drawShip() {
+    var alpha = 1;
+    if (invuln > 0) alpha = (Math.floor(invuln * 10) % 2 === 0) ? 1 : 0.2;  // 10 Hz blink
+    ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.shadowColor = "#22d3ee";
-    ctx.shadowBlur = 16;
-    ctx.fillRect(ship.x - 8, ship.y - 8, 16, 16);
+    ctx.shadowBlur = 15;
+    ctx.fillStyle = "#22d3ee";
+    ctx.beginPath();
+    ctx.moveTo(ship.x, ship.y - 13);
+    ctx.lineTo(ship.x - 10, ship.y + 9);
+    ctx.lineTo(ship.x + 10, ship.y + 9);
+    ctx.closePath();
+    ctx.fill();
     ctx.shadowBlur = 0;
+    ctx.fillStyle = "#e0f2fe";                       // cockpit
+    ctx.beginPath();
+    ctx.arc(ship.x, ship.y - 1, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawAsteroids() {
+    var i, j;
+    ctx.lineWidth = 2;
+    for (i = 0; i < asteroids.length; i++) {
+      var a = asteroids[i];
+      ctx.save();
+      ctx.translate(a.x, a.y);
+      ctx.rotate(a.rot);
+      ctx.beginPath();
+      for (j = 0; j < 8; j++) {
+        var ang = j * Math.PI / 4;
+        var rr = a.r * a.jit[j];
+        var px = Math.cos(ang) * rr, py = Math.sin(ang) * rr;
+        if (j === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "#141a24";
+      ctx.fill();
+      ctx.strokeStyle = "#8b93a7";
+      ctx.stroke();
+      ctx.fillStyle = "#334155";
+      for (j = 0; j < a.spk.length; j++) {
+        var sp = a.spk[j];
+        ctx.beginPath();
+        ctx.arc(Math.cos(sp.a) * sp.d * a.r, Math.sin(sp.a) * sp.d * a.r, a.r * 0.14, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  function drawDust() {
+    var i;
+    ctx.save();
+    ctx.shadowColor = "#fde68a";
+    ctx.shadowBlur = 18;
+    for (i = 0; i < dusts.length; i++) {
+      var d = dusts[i];
+      ctx.fillStyle = "#fde68a";
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = "#fbbf24";
+      ctx.beginPath(); ctx.arc(d.x, d.y, d.r * 0.6, 0, Math.PI * 2); ctx.fill();
+      ctx.shadowColor = "#fde68a";
+      ctx.shadowBlur = 18;
+    }
+    ctx.restore();
+  }
+
+  function drawParticles() {
+    var i;
+    for (i = 0; i < particles.length; i++) {
+      var p = particles[i];
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawRings() {
+    var i;
+    for (i = 0; i < rings.length; i++) {
+      var r = rings[i];
+      var k = 1 - r.life / r.maxLife;              // 0 -> 1
+      ctx.globalAlpha = r.life / r.maxLife;
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(r.x, r.y, 8 + k * 42, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawPops() {
+    var i;
+    ctx.font = "bold 14px " + FONT;
+    ctx.textAlign = "center";
+    for (i = 0; i < pops.length; i++) {
+      var p = pops[i];
+      ctx.globalAlpha = Math.max(0, p.life / p.maxLife);
+      ctx.fillStyle = "#fde68a";
+      ctx.fillText("+25", p.x, p.y);
+    }
+    ctx.globalAlpha = 1;
     ctx.textAlign = "left";
-    ctx.fillStyle = "#d7e1f2";
-    ctx.font = "bold 18px monospace";
-    ctx.fillText("SCORE " + score, 16, 28);
+  }
+
+  function drawHUD() {
+    // score (top-left)
+    ctx.font = "16px " + FONT;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = "#7d90b8";
+    ctx.fillText("SCORE", 14, 10);
+    ctx.fillStyle = "#cfe3ff";
+    ctx.fillText(pad6(Math.floor(score)), 14, 28);
+
+    // lives (top-center): 3 mini 10px ship glyphs
+    var i, cx = W / 2 - 33;
+    for (i = 0; i < 3; i++) {
+      var gx = cx + i * 33;
+      ctx.fillStyle = i < lives ? "#22d3ee" : "#1f2937";
+      ctx.beginPath();
+      ctx.moveTo(gx, 11);
+      ctx.lineTo(gx - 5, 21);
+      ctx.lineTo(gx + 5, 21);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // elapsed time (top-right)
+    ctx.fillStyle = "#7d90b8";
     ctx.textAlign = "right";
-    ctx.fillText("LIVES " + "▮".repeat(lives), W - 16, 28);
+    ctx.fillText(fmtTime(t), W - 14, 10);
+    ctx.textAlign = "left";
+  }
+
+  function drawTitle() {
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.save();
+    ctx.shadowColor = "#22d3ee";
+    ctx.shadowBlur = 20;
+    ctx.fillStyle = "#22d3ee";
+    ctx.font = "48px " + FONT;
+    ctx.fillText("STARDUST", W / 2, H / 2 - 60);
+    ctx.restore();
+
+    ctx.font = "14px " + FONT;
+    ctx.fillStyle = "#7d90b8";
+    ctx.fillText("weave the asteroid stream \u00b7 scoop golden stardust \u00b7 3 lives", W / 2, H / 2 - 12);
+    ctx.fillText("arrows / wasd to fly", W / 2, H / 2 + 10);
+
+    var pulse = 0.55 + 0.45 * Math.sin(clock * Math.PI * 2 * 1.5);
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "20px " + FONT;
+    ctx.fillText("press ENTER", W / 2, H / 2 + 64);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function drawOver() {
+    ctx.fillStyle = "rgba(5,7,12,0.66)";
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.save();
+    ctx.shadowColor = "#f43f5e";
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = "#f43f5e";
+    ctx.font = "48px " + FONT;
+    ctx.fillText("GAME OVER", W / 2, H / 2 - 64);
+    ctx.restore();
+
+    ctx.fillStyle = "#cfe3ff";
+    ctx.font = "28px " + FONT;
+    ctx.fillText("SCORE " + pad6(Math.floor(score)), W / 2, H / 2 - 6);
+
+    var pulse = 0.55 + 0.45 * Math.sin(clock * Math.PI * 2 * 1.5);
+    ctx.globalAlpha = pulse;
+    ctx.fillStyle = "#fbbf24";
+    ctx.font = "20px " + FONT;
+    ctx.fillText("press ENTER or SPACE", W / 2, H / 2 + 56);
+    ctx.globalAlpha = 1;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+  }
+
+  function render() {
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+    drawStars();
+
+    if (mode === "title") {
+      drawTitle();
+      return;
+    }
+
+    // world (with decaying 8px screen shake)
+    ctx.save();
+    if (shake > 0) {
+      var k = shake / 0.4;
+      ctx.translate((Math.random() * 2 - 1) * 8 * k, (Math.random() * 2 - 1) * 8 * k);
+    }
+    drawAsteroids();
+    drawDust();
+    drawParticles();
+    drawRings();
+    drawPops();
+    if (mode === "play") drawShip();
+    ctx.restore();
+
+    // red vignette flash (200ms after a hit)
+    if (flash > 0) {
+      ctx.globalAlpha = Math.max(0, flash / 0.2) * 0.6;
+      ctx.fillStyle = vigGrad;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+    }
+
+    drawHUD();
+    if (mode === "over") drawOver();
+  }
+
+  // ---------- main loop ----------
+  var last = performance.now();
+  function frame(now) {
+    var dt = Math.min(0.05, (now - last) / 1000);
+    last = now;
+    update(dt);
+    render();
+    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
-}
-frame();
+
+  // ---------- test hook (contract — do not change) ----------
+  window.__studio = {
+    start: function () { startRun(); },
+    state: function () {
+      return {
+        running: mode === "play",
+        score: Math.floor(score),
+        lives: lives,
+        over: mode === "over"
+      };
+    }
+  };
+})();
 </script>
 </body>
 </html>

@@ -1,0 +1,85 @@
+{
+  "verdict": "PASS",
+  "url": "file:///home/mika/Git/local-ai-demo/game/index.html",
+  "out": "/home/mika/Git/local-ai-demo/studio/shots/run-2026-10-28T21-56-00-477Z",
+  "ms": 6000,
+  "checks": [
+    {
+      "name": "studio hook present",
+      "pass": true,
+      "detail": "window.__studio = object"
+    },
+    {
+      "name": "game starts via __studio.start()",
+      "pass": true,
+      "detail": "started"
+    },
+    {
+      "name": "game runs and responds to input",
+      "pass": true,
+      "detail": "states: [{\"running\":true,\"score\":2,\"lives\":3,\"over\":false},{\"running\":true,\"score\":13,\"lives\":3,\"over\":false},{\"running\":true,\"score\":24,\"lives\":3,\"over\":false},{\"running\":true,\"score\":35,\"lives\":3,\"over\":false},{\"running\":true,\"score\":46,\"lives\":3,\"over\":false},{\"running\":true,\"score\":57,\"lives\":3,\"over\":false},{\"running\":true,\"score\":63,\"lives\":3,\"over\":false},{\"running\":true,\"score\":69,\"lives\":3,\"over\":false}] (over seen: false)"
+    },
+    {
+      "name": "no page errors",
+      "pass": true,
+      "detail": "clean"
+    }
+  ],
+  "errors": [],
+  "states": [
+    {
+      "running": true,
+      "score": 2,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 13,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 24,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 35,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 46,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 57,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 63,
+      "lives": 3,
+      "over": false
+    },
+    {
+      "running": true,
+      "score": 69,
+      "lives": 3,
+      "over": false
+    }
+  ],
+  "shots": [
+    "/home/mika/Git/local-ai-demo/studio/shots/run-2026-10-28T21-56-00-477Z/qa-0.png",
+    "/home/mika/Git/local-ai-demo/studio/shots/run-2026-10-28T21-56-00-477Z/qa-1.png",
+    "/home/mika/Git/local-ai-demo/studio/shots/run-2026-10-28T21-56-00-477Z/qa-2.png"
+  ],
+  "ts": "2026-10-28T21:56:00.703Z"
+}
