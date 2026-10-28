@@ -10,3 +10,8 @@
 {"t":1793224568390,"agent":"qa","type":"test","text":"playtest PASS — all checks passed (shots: 3)"}
 {"t":1793224587806,"agent":"qa","type":"test","text":"playtest PASS — all checks passed (shots: 3)"}
 {"t":1793224641033,"agent":"engineer","type":"milestone","text":"STARDUST build complete in game/index.html (single file, vanilla JS + canvas 2d). Full plan implemented: title/play/over state machine, 8-way normalized ship in bottom band (360 px/s, r=11 hitbox), asteroid clusters 60/25/15% with spin+drift, stardust orbs +25 with sway, score +10/s, 3 lives, 1.6s 10Hz-blink invulnerability, 8px decaying shake, 200ms red vignette, difficulty mult 1+min(1.2,t/90), "}
+{"t":1793224755479,"agent":"qa","type":"test","text":"playtest PASS — all checks passed (shots: 3)"}
+{"t":1793224844002,"agent":"qa","type":"verdict","text":"PASS: All automated checks passed and game mechanics are functioning as per plan"}
+{"t":1793224854016,"agent":"qa","type":"info","text":"Round 1 playtest completed. No bugs found. Verdict: PASS."}
+{"t":1793225821176,"agent":"studio","type":"info","text":"QA round 1: automated playtest PASS (4/4 checks, 0 page errors). Its read-tool could not open the PNGs, so the orchestrator visually verified qa-0..2 against the plan: neon ship+trail, HUD score/glyphs/timer, asteroid polygons, dust glow, frames animating, lives decrement on hit. PASS confirmed."}
+{"t":1793225821211,"agent":"studio","type":"milestone","text":"Run 1 complete: one sentence in (Stardust), one playable game out. Design by architect, build by engineer, verified by QA + orchestrator visual check. STARDUST is live in the dashboard — replay with scripts/studio.sh."}

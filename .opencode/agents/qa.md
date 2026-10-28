@@ -32,8 +32,11 @@ Every run, in this order:
    It drives a headless Chrome over CDP, plays `game/index.html`, prints a JSON report
    (verdict, errors, state samples, screenshot paths) to stdout, and saves screenshots
    under `studio/shots/`.
-2. Read the 2-3 newest screenshots from the report with the `read` tool. Judge: does it
-   render? Is the HUD visible? Are the ship/entities visible? Frozen or broken frames?
+2. Read the 2-3 newest screenshots from the report with the `read` tool — use the
+   exact absolute paths printed in the JSON report, one file per call (batched or
+   hand-typed paths fail). Judge: does it render? Is the HUD visible? Are the
+   ship/entities visible? Frozen or broken frames? If you truly cannot open a
+   screenshot, say so explicitly in your verdict — never pass on numbers alone.
 3. File bugs in `studio/bugs.md`, one line each, exactly:
    `- [ ] (qa, <date>) <what is broken, where, severity: high|med|low> [repro: <inputs/sequence>]`
    If you found nothing: append `- [x] (qa, <date>) clean pass, run <n> — no new bugs`.
