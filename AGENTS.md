@@ -1,4 +1,5 @@
 # AGENTS.md
+This repository contains a demo of the capabilities of local AI agents.
 
 ## Project instructions
 - The main agent may update this AGENTS.md as needed.
@@ -28,3 +29,15 @@ Run long subagent work in the background and keep prompts compact.
 If a canonical GPU is busy, alternative placements exist on the proxy, e.g.
 `litellm/big-machine/Qwen/Qwen3.8-27B`, `litellm/agx-z2e/Qwen/Qwen3.8-Flash-Next`,
 `litellm/agx-ai/google/gemma-4-26b-a4b-qat`.
+
+## Studio demo
+This repo is the "3-agent game studio" demo: architect/engineer/qa subagents
+(defined in `.opencode/agents/*.md`, one per GPU) collaboratively build
+`game/index.html` from a one-sentence brief (`studio/prompt.txt`) and are
+monitored by the dashboard (`node web/server.mjs` → `:8790`).
+- The shared filesystem *is* the bus: log with `studio/bus/append.sh <agent> <type> "<text>"`;
+  per-agent inboxes are in `studio/bus/in/`; design in `studio/plan.md`; bugs in `studio/bugs.md`.
+- Subagents never run git (orchestrator commits at phase boundaries).
+- QA's playtest driver: `node scripts/playtest.mjs` (headless Chrome over CDP, zero deps).
+- Headless replay of the whole build: `scripts/studio.sh "<brief>"`.
+- Full protocol: README.md.

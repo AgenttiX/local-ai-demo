@@ -220,3 +220,7 @@ __marimo__/
 .streamlit/secrets.toml
 
 .idea
+
+# studio bus lock + replay artifacts (live-run shots, bus, plans, bugs ARE committed)
+studio/bus/.lock
+studio/shots/replay-*

@@ -1,0 +1,39 @@
+{
+  "verdict": "FAIL",
+  "url": "http://127.0.0.1:8790/game/",
+  "out": "/home/mika/Git/local-ai-demo/studio/shots/pipeline-test",
+  "ms": 7000,
+  "checks": [
+    {
+      "name": "studio hook present",
+      "pass": false,
+      "detail": "window.__studio = undefined"
+    },
+    {
+      "name": "game starts via __studio.start()",
+      "pass": false,
+      "detail": "no-start-fn"
+    },
+    {
+      "name": "game runs and responds to input",
+      "pass": false,
+      "detail": "states: [] (over seen: false)"
+    },
+    {
+      "name": "no page errors",
+      "pass": false,
+      "detail": "PAGE: Failed to load resource: the server responded with a status of 404 (Not Found) | PAGE: Failed to load resource: the server responded with a status of 404 (Not Found)"
+    }
+  ],
+  "errors": [
+    "PAGE: Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "PAGE: Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "states": [],
+  "shots": [
+    "/home/mika/Git/local-ai-demo/studio/shots/pipeline-test/qa-0.png",
+    "/home/mika/Git/local-ai-demo/studio/shots/pipeline-test/qa-1.png",
+    "/home/mika/Git/local-ai-demo/studio/shots/pipeline-test/qa-2.png"
+  ],
+  "ts": "2026-10-28T21:22:50.862Z"
+}

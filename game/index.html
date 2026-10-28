@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>STUDIO — under construction</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05070c; overflow: hidden; }
+  #wrap { height: 100%; display: grid; place-items: center; }
+  canvas { background: #0a0e14; box-shadow: 0 0 60px rgba(14,116,144,.25); }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c" width="960" height="540"></canvas></div>
+<script>
+// ============================================================================
+// STUB — proves the studio pipeline (render, input, test hook). The engineer
+// replaces this whole file with the real game from studio/plan.md.
+// ============================================================================
+const cv = document.getElementById("c"), ctx = cv.getContext("2d");
+const W = cv.width, H = cv.height;
+let running = false, over = false, score = 0, lives = 3, t = 0;
+const ship = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
+const stars = Array.from({ length: 120 }, () => ({
+  x: Math.random() * W, y: Math.random() * H, s: Math.random() * 1.6 + 0.3,
+}));
+const keys = {};
+addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if ((e.key === "Enter" || e.key === " ") && !running && !over) start();
+  if (e.key === "r" && over) start();
+});
+addEventListener("keyup", e => delete keys[e.key]);
+addEventListener("mousedown", () => { if (!running && !over) start(); });
+
+function start() { running = true; over = false; score = 0; lives = 3; t = 0; }
+window.__studio = { start, state: () => ({ running, score, lives, over }) };
+
+function frame() {
+  if (running) {
+    t++;
+    score = Math.floor(t / 30);
+    ship.vx = (keys["ArrowRight"] ? 4 : 0) - (keys["ArrowLeft"] ? 4 : 0);
+    ship.vy = (keys["ArrowDown"] ? 4 : 0) - (keys["ArrowUp"] ? 4 : 0);
+    ship.x = Math.max(10, Math.min(W - 10, ship.x + ship.vx));
+    ship.y = Math.max(10, Math.min(H - 10, ship.y + ship.vy));
+  }
+  // draw
+  ctx.fillStyle = "#0a0e14";
+  ctx.fillRect(0, 0, W, H);
+  ctx.fillStyle = "#8aa2c8";
+  for (const s of stars) {
+    ctx.globalAlpha = 0.3 + 0.5 * ((Math.sin(t * 0.01 + s.x) + 1) / 2);
+    ctx.fillRect(s.x, s.y, s.s, s.s);
+  }
+  ctx.globalAlpha = 1;
+  if (!running) {
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#67e8f9";
+    ctx.font = "bold 34px monospace";
+    ctx.fillText("GAME UNDER CONSTRUCTION", W / 2, H / 2 - 20);
+    ctx.fillStyle = "#5b6b85";
+    ctx.font = "16px monospace";
+    ctx.fillText("the engineer is building the real game — press Enter to poke the stub", W / 2, H / 2 + 16);
+  } else {
+    ctx.fillStyle = "#22d3ee";
+    ctx.shadowColor = "#22d3ee";
+    ctx.shadowBlur = 16;
+    ctx.fillRect(ship.x - 8, ship.y - 8, 16, 16);
+    ctx.shadowBlur = 0;
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#d7e1f2";
+    ctx.font = "bold 18px monospace";
+    ctx.fillText("SCORE " + score, 16, 28);
+    ctx.textAlign = "right";
+    ctx.fillText("LIVES " + "▮".repeat(lives), W - 16, 28);
+  }
+  requestAnimationFrame(frame);
+}
+frame();
+</script>
+</body>
+</html>

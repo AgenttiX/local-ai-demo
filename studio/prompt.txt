@@ -1,0 +1,1 @@
+Build "Stardust" — a neon arcade game where a tiny ship dodges an endless stream of asteroids and collects stardust; 3 lives, a score, and a game-over screen, all in one HTML file.
