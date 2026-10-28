@@ -6,8 +6,9 @@
 <title>STUDIO — under construction</title>
 <style>
   html, body { margin: 0; height: 100%; background: #05070c; overflow: hidden; }
-  #wrap { height: 100%; display: grid; place-items: center; }
-  canvas { background: #0a0e14; box-shadow: 0 0 60px rgba(14,116,144,.25); }
+  #wrap { height: 100%; display: grid; place-items: center; padding: 12px; }
+  /* contract: the canvas must scale into any container (dashboard iframe or full window) */
+  canvas { background: #0a0e14; box-shadow: 0 0 60px rgba(14,116,144,.25); max-width: 100%; height: auto; }
 </style>
 </head>
 <body>

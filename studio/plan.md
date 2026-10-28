@@ -25,3 +25,6 @@ The game must expose:
 window.__studio = { start(), state() }
 // state() -> { running: bool, score: number, lives: number, over: bool }
 ```
+
+The canvas must scale into any container: `canvas { max-width: 100%; height: auto; }`
+(the dashboard embeds the game in a narrow iframe — it must look right at any size).

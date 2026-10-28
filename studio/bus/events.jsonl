@@ -1,4 +1,4 @@
-{"t":1761646800000,"agent":"studio","type":"milestone","text":"Studio online: architect(27B/RTX3090) + engineer(Flash-Next/RTX3070) + qa(Gemma-4-26B/RadeonVII). One sentence in, one playable game out."}
+{"t":1793222400000,"agent":"studio","type":"milestone","text":"Studio online: architect(27B/RTX3090) + engineer(Flash-Next/RTX3070) + qa(Gemma-4-26B/RadeonVII). One sentence in, one playable game out."}
 {"t":1793222557271,"agent":"studio","type":"info","text":"scaffold complete: agents, bus, dashboard, playtest"}
 {"t":1793222557304,"agent":"studio","type":"info","text":"node 26.13 now the default runtime (25 was EOL)"}
 {"t":1793222579310,"agent":"qa","type":"test","text":"playtest FAIL — studio hook present; game starts via __studio.start(); game runs and responds to input; no page errors (shots: 3)"}
