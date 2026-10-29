@@ -92,9 +92,11 @@ playtest calls it without pressing anything).
 
 ## Look
 
-- **Canvas:** 960×540 logical size; CSS `canvas { max-width: 100%; height: auto; }`
-  centered in a page with background `#05070c` (must look right at any size —
-  the dashboard embeds it in a narrow iframe).
+- **Canvas:** 960×540 logical size — the game logic always runs in 960×540
+  coordinates, but the canvas resizes to fill the window (letterboxed to 16:9,
+  centered on background `#05070c`, devicePixelRatio-aware, 2D context scaled
+  to match) so the game fits any window size, including the dashboard's
+  embedded iframe.
 - **Palette (hex):**
 
   | Element | Color(s) |

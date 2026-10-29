@@ -5,18 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>STARDUST</title>
 <style>
-  html, body { margin: 0; padding: 0; background: #05070c; }
+  html, body { margin: 0; padding: 0; background: #05070c; overflow: hidden; }
   body {
-    min-height: 100vh;
+    height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
   }
-  canvas {
-    max-width: 100%;
-    height: auto;
-    display: block;
-  }
+  canvas { display: block; }
 </style>
 </head>
 <body>
@@ -28,6 +24,23 @@
   var ctx = canvas.getContext("2d");
   var W = 960, H = 540;
   var FONT = 'ui-monospace, "Courier New", monospace';
+
+  // ---------- viewport scaling ----------
+  // Game logic always runs in 960x540 coordinates. The canvas is resized to fill
+  // the window (letterboxed to 16:9) and the context is scaled to match (with
+  // devicePixelRatio for crispness), so the game adapts to any window size —
+  // including the dashboard's embedded iframe.
+  function resize() {
+    var dpr = Math.max(1, window.devicePixelRatio || 1);
+    var s = Math.min(window.innerWidth / W, window.innerHeight / H);
+    if (!(s > 0)) s = 1;
+    canvas.style.width = Math.max(1, Math.round(W * s)) + "px";
+    canvas.style.height = Math.max(1, Math.round(H * s)) + "px";
+    canvas.width = Math.max(1, Math.round(canvas.clientWidth * dpr));
+    canvas.height = Math.max(1, Math.round(canvas.clientHeight * dpr));
+  }
+  window.addEventListener("resize", resize);
+  resize();
 
   // ---------- state ----------
   var mode = "title";            // title | play | over
@@ -516,6 +529,7 @@
   }
 
   function render() {
+    ctx.setTransform(canvas.width / W, 0, 0, canvas.height / H, 0, 0);
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, W, H);
     drawStars();
