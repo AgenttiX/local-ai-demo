@@ -40,4 +40,8 @@ monitored by the dashboard (`node web/server.mjs` → `:8790`).
 - Subagents never run git (orchestrator commits at phase boundaries).
 - QA's playtest driver: `node scripts/playtest.mjs` (headless Chrome over CDP, zero deps).
 - Headless replay of the whole build: `scripts/studio.sh "<brief>"`.
+- Dashboard: `node web/server.mjs` from the repo root — zero-dep Node (>= 18),
+  listens on 127.0.0.1:8790 (override with PORT). UI at `/`, live SSE feed at
+  `/events`, playable game at `/game`, QA screenshots at `/shots/`. Open
+  http://localhost:8790 in the integrated browser to watch a run.
 - Full protocol: README.md.
