@@ -1,7 +1,7 @@
 ---
-description: Studio engineer — implements game/index.html and fixes QA bugs (Qwen3.8-Flash-Next, RTX 3070)
+description: Studio engineer — implements game/index.html and fixes QA bugs (Qwen3.8-27B, RTX 3090)
 mode: subagent
-model: litellm/agx-ai/Qwen/Qwen3.8-Flash-Next
+model: litellm/agx-z2e/Qwen/Qwen3.8-27B
 permissions:
   - action: webfetch
     resource: "*"

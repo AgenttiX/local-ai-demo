@@ -1,13 +1,13 @@
 # 3 GPUs, One Playable Game
 
 A **3-agent game studio** that turns a *one-sentence brief* into a *playable browser
-game*, built entirely on three consumer GPUs — **zero cloud calls, zero API keys in
+game*, built entirely on local consumer GPUs — **zero cloud calls, zero API keys in
 this repo, zero npm dependencies**.
 
 | Agent | Model | GPU | Speed | Job |
 | --- | --- | --- | --- | --- |
 | **ARCHITECT** | Qwen3.8-27B | RTX 3090 (agx-z2e) | 128 tok/s | designs the game from the brief |
-| **ENGINEER** | Qwen3.8-Flash-Next | RTX 3070 (agx-ai) | 55 tok/s | implements `game/index.html` (native tool calling) |
+| **ENGINEER** | Qwen3.8-27B | RTX 3090 (agx-z2e) | 128 tok/s | implements `game/index.html` and fixes QA's bugs |
 | **QA** | Gemma 4 26B A4B (QAT) | Radeon VII (agx-z2e) | 124 tok/s | *plays* the game in a headless browser, sees its own screenshots, files bugs |
 
 All three models are served locally and reached through the LiteLLM proxy as
@@ -17,7 +17,7 @@ live mission-control dashboard shows the work happen.
 
 ```
  one sentence ──▶ ARCHITECT ──▶ plan.md ──▶ ENGINEER ──▶ game/index.html
-   (prompt.txt)    (3090)                    (3070)          │
+   (prompt.txt)    (3090)                    (3090)          │
                                                              ▼
    commit ──▶ dashboard ◀── studio/bus ◀── QA ◀── headless Chrome (CDP) playtest
         ▲                                    (Radeon VII)   + screenshots QA can see
@@ -34,8 +34,8 @@ Open OpenCode in this repo and tell it:
 Run the 3-agent studio demo. The brief is in studio/prompt.txt.
 ```
 
-The main agent acts as **studio manager**: it spawns the three subagents one per
-GPU (`.opencode/agents/*.md` pins each role to its model), watches the bus, and
+The main agent acts as **studio manager**: it spawns the three subagents
+(`.opencode/agents/*.md` pins each role to its model), watches the bus, and
 runs the QA → fix → QA loop until the game passes. Meanwhile:
 
 ```
@@ -130,8 +130,9 @@ scripts/            playtest.mjs  studio.sh             ← CDP driver, replay o
 - **Local = slow-ish.** A 1k-token answer costs ~8–20 s of wall time; a full
   build + QA loop runs minutes. That slowness *is* the demo — you can watch it.
 - **One agent per GPU** is the default (multiple per GPU would split its
-  context). Alternative placements exist on the proxy if a GPU is busy — see
-  `AGENTS.md`.
+  context); the studio runs architect and engineer on the same RTX 3090,
+  which is fine because they run sequentially. Alternative placements exist
+  on the proxy if a GPU is busy — see `AGENTS.md`.
 - The dashboard binds `127.0.0.1` only. The game is a single self-contained HTML
   file; anything the engineer adds must stay library-free and asset-free (the
   QA playtest and the "0 cloud calls" promise depend on it).

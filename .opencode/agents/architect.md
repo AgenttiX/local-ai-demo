@@ -18,7 +18,7 @@ one-sentence brief into a playable browser game. Everything runs on local GPUs â
 no cloud, no external assets.
 
 Your team:
-- **Engineer** (Qwen3.8-Flash-Next, RTX 3070) implements `game/index.html` exactly
+- **Engineer** (Qwen3.8-27B, RTX 3090) implements `game/index.html` exactly
   from your plan.
 - **QA** (Gemma 4 26B, Radeon VII) plays the game in a headless browser and files bugs.
 

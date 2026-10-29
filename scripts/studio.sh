@@ -1,6 +1,6 @@
 #!/bin/bash
 # Replay the whole 3-agent studio build, headless:
-#   architect (27B/3090) designs -> engineer (Flash-Next/3070) implements
+#   architect (27B/3090) designs -> engineer (27B/3090) implements
 #   -> QA (Gemma-4-26B/RadeonVII) playtests in a real headless browser
 #   -> fix loop until QA passes or MAX_ROUNDS is exhausted -> commit.
 #
@@ -18,7 +18,7 @@ BRIEF="${1:-$(cat studio/prompt.txt)}"
 PORT="${PORT:-8790}"
 MAX_ROUNDS="${MAX_ROUNDS:-3}"
 ARCH="litellm/agx-z2e/Qwen/Qwen3.8-27B"
-ENG="litellm/agx-ai/Qwen/Qwen3.8-Flash-Next"
+ENG="litellm/agx-z2e/Qwen/Qwen3.8-27B"
 QA="litellm/agx-z2e-rocm/google/gemma-4-26b-a4b-qat"
 
 say() { printf '\n\033[1;36m━━ %s\033[0m\n' "$*"; }

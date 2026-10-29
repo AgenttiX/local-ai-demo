@@ -19,7 +19,7 @@ const GAME = path.join(ROOT, "game");
 
 const AGENTS = [
   { id: "architect", name: "ARCHITECT", model: "Qwen3.8-27B", gpu: "RTX 3090", host: "agx-z2e", ctx: 139264, speed: "128 tok/s" },
-  { id: "engineer", name: "ENGINEER", model: "Qwen3.8-Flash-Next", gpu: "RTX 3070", host: "agx-ai", ctx: 57344, speed: "55 tok/s" },
+  { id: "engineer", name: "ENGINEER", model: "Qwen3.8-27B", gpu: "RTX 3090", host: "agx-z2e", ctx: 139264, speed: "128 tok/s" },
   { id: "qa", name: "QA", model: "Gemma 4 26B A4B", gpu: "Radeon VII", host: "agx-z2e", ctx: 88064, speed: "124 tok/s" },
 ];
 
