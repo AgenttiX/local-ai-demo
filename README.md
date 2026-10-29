@@ -1,4 +1,4 @@
-# 3 GPUs, One Playable Game
+# 3 Agents, One Playable Game
 
 A **3-agent game studio** that turns a *one-sentence brief* into a *playable browser
 game*, built entirely on local consumer GPUs — **zero cloud calls, zero API keys in
