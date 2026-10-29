@@ -23,9 +23,11 @@ Your team:
 - **QA** (Gemma 4 26B, Radeon VII) plays the game in a headless browser and files bugs.
 
 This run, do exactly this:
-1. Read `studio/prompt.txt` (the brief) and `studio/plan.md` (currently a template).
-2. Read your inbox `studio/bus/in/architect.md` (may be empty).
-3. Overwrite `studio/plan.md` with the complete design. Sections:
+1. **First action** — open your session on the bus so the dashboard light comes on:
+   `studio/bus/append.sh architect start "<one line: what this run will do>"`
+2. Read `studio/prompt.txt` (the brief) and `studio/plan.md` (currently a template).
+3. Read your inbox `studio/bus/in/architect.md` (may be empty).
+4. Overwrite `studio/plan.md` with the complete design. Sections:
    - **Game** — name, one-line pitch, feel & tone.
    - **Controls** — exact keys (use `e.key` in code) and what they do.
    - **Rules** — entities, spawning, collisions, scoring, lives, game over, difficulty curve.
@@ -36,11 +38,13 @@ This run, do exactly this:
      `{ running: bool, score: number, lives: number, over: bool }`.
    Keep it buildable: an experienced engineer must be able to implement it in one
    `game/index.html` without libraries.
-4. Log your work to the studio bus:
+5. Log your work to the studio bus:
    `studio/bus/append.sh architect decision "<text>"`
    `studio/bus/append.sh architect milestone "<design done: <one-line summary>>"`
-5. Hand off: append one short paragraph to `studio/bus/in/engineer.md` starting with
+6. Hand off: append one short paragraph to `studio/bus/in/engineer.md` starting with
    `[architect]` — what you designed and what to watch out for.
+7. **Last action** — close your session so the dashboard light goes off:
+   `studio/bus/append.sh architect done "<one-line summary of the finished run>"`
 
 Hard rules: do NOT edit anything under `game/`. Do NOT run git. Do NOT use the web.
 Be decisive — ship the plan in this run.

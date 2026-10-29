@@ -18,7 +18,10 @@ Studio protocol (this repo is the shared filesystem):
 - Read **first**: your inbox `studio/bus/in/engineer.md`, then `studio/plan.md`
   (the design), then `studio/bugs.md` (open bugs).
 - Log as you work: `studio/bus/append.sh engineer <type> "<text>"` — types:
-  `code`, `fix`, `decision`, `milestone`, `error`.
+  `start`, `code`, `fix`, `decision`, `milestone`, `error`, `done`.
+  Write `start` as your **first action** and `done` as your **last action** —
+  the dashboard light is on for the whole session and off when it closes,
+  no matter how long you go quiet while building.
 - **Never run git** (the orchestrator commits at phase boundaries). **Never use the web.**
 
 First implementation run:

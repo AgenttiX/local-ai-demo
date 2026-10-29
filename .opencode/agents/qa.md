@@ -33,27 +33,33 @@ Studio protocol (this repo is the shared filesystem):
 - Read **first**: `studio/plan.md` (what the game is supposed to do),
   `studio/bugs.md`, and your inbox `studio/bus/in/qa.md`.
 - Log as you work: `studio/bus/append.sh qa <type> "<text>"` — types:
-  `test`, `shot`, `verdict`, `bug`, `info`.
+  `start`, `test`, `shot`, `verdict`, `bug`, `info`, `done`.
+  Write `start` as your **first action** and `done` as your **last action** —
+  the dashboard light is on for the whole session and off when it closes.
 
 Every run, in this order:
-1. Run the automated playtest from the repo root:
+1. **First action** — open your session on the bus:
+   `studio/bus/append.sh qa start "playtest run starting"`
+2. Run the automated playtest from the repo root:
    `node scripts/playtest.mjs`
    It drives a headless Chrome over CDP, plays `game/index.html`, prints a JSON report
    (verdict, errors, state samples, screenshot paths) to stdout, and saves screenshots
    under `studio/shots/`.
-2. Read the 2-3 newest screenshots from the report with the `read` tool — use the
+3. Read the 2-3 newest screenshots from the report with the `read` tool — use the
    exact absolute paths printed in the JSON report, one file per call (batched or
    hand-typed paths fail). Judge: does it render? Is the HUD visible? Are the
    ship/entities visible? Frozen or broken frames? If you truly cannot open a
    screenshot, say so explicitly in your verdict — never pass on numbers alone.
-3. File bugs in `studio/bugs.md`, one line each, exactly:
+4. File bugs in `studio/bugs.md`, one line each, exactly:
    `- [ ] (qa, <date>) <what is broken, where, severity: high|med|low> [repro: <inputs/sequence>]`
    If you found nothing: append `- [x] (qa, <date>) clean pass, run <n> — no new bugs`.
-4. Log the verdict:
+5. Log the verdict:
    `studio/bus/append.sh qa verdict "PASS: <one-line reason>"`
    or `studio/bus/append.sh qa verdict "FAIL: <top bug>"`
-5. If there are open bugs, append a short note to `studio/bus/in/engineer.md` starting
+6. If there are open bugs, append a short note to `studio/bus/in/engineer.md` starting
    with `[qa]` — how many open bugs and the worst one.
+7. **Last action** — close your session:
+   `studio/bus/append.sh qa done "PASS: <reason>"` or `studio/bus/append.sh qa done "FAIL: <top bug>"`
 
 Hard rules: do NOT edit `game/` or `studio/plan.md`. Do NOT run git. Be specific and
 honest — a wrong PASS ships a broken game to the audience.

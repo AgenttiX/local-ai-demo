@@ -45,6 +45,8 @@ main{flex:1;display:flex;flex-direction:column;gap:10px;padding:10px 12px;min-he
 .agent .stat{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px}
 .agent .stat .dot{width:7px;height:7px;border-radius:50%;background:#33415a;flex:0 0 auto}
 .agent.active .stat .dot{background:var(--c);box-shadow:0 0 8px var(--c);animation:pulse 1.1s infinite}
+/* a session that started but never wrote `done` (run interrupted): steady amber, not green */
+.agent.stale .stat .dot{background:var(--studio);box-shadow:0 0 8px var(--studio)}
 .agent .last{color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* event feed — two-line row: compact time+who meta on top, message below at full width */
 .ev{display:flex;flex-direction:column;gap:1px;padding:5px 12px;border-bottom:1px solid #0e1420;border-left:2px solid transparent;font-size:12px;min-width:0}
@@ -123,15 +125,40 @@ const ago = (t) => {
   return s < 60 ? s + "s" : s < 3600 ? Math.round(s / 60) + "m" : Math.round(s / 3600) + "h";
 };
 
+// Agent liveness is driven by explicit lifecycle events on the bus, not by
+// event recency: every session opens with a `start` event and closes with a
+// `done` event (the agents write them as first/last actions; scripts/studio.sh
+// brackets each `opencode run`; the orchestrator closes a session left open).
+// The dot stays lit for the whole run, goes dark the moment the session ends,
+// and a `start` that never gets a `done` goes steady amber once it goes stale
+// (the run was interrupted) instead of pretending to be live.
+const STALE_MS = 30 * 60 * 1000;
+const lastEventOf = (id) => {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].agent === id) return events[i];
+  return null;
+};
+const lifecycleOf = (id) => {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i];
+    if (e.agent === id && (e.type === "start" || e.type === "done")) return e;
+  }
+  return null;
+};
+function stateOf(id) {
+  const life = lifecycleOf(id);
+  if (life) return life.type === "done" ? "idle" : Date.now() - life.t < STALE_MS ? "active" : "stale";
+  const last = lastEventOf(id); // no lifecycle events yet (legacy run): fall back to recency
+  return last && Date.now() - last.t < 45000 ? "active" : "idle";
+}
 function renderAgents() {
   $("#agents").innerHTML = agents.map((a) => {
-    const mine = events.filter((e) => e.agent === a.id).sort((x, y) => y.t - x.t);
-    const last = mine[0];
-    const active = last && Date.now() - last.t < 45000;
-    return `<div class="agent ${active ? "active" : ""}" style="--c:${C[a.id] || "#888"}">
+    const st = stateOf(a.id);
+    const last = lastEventOf(a.id);
+    const tag = st === "active" ? "working" : st === "stale" ? "stale — no done event" : "";
+    return `<div class="agent ${st === "active" ? "active" : st === "stale" ? "stale" : ""}" style="--c:${C[a.id] || "#888"}">
       <div class="top"><span class="name">${a.name}</span><span class="gpu">${a.gpu} · ${a.host}</span></div>
       <div class="model">${a.model} · ctx ${a.ctx} · ${a.speed}</div>
-      <div class="stat"><span class="dot"></span><span class="last">${last ? fmt(last.t) + " — " + esc(last.text) : "waiting for first event"}</span></div>
+      <div class="stat"><span class="dot"></span><span class="last">${tag ? tag + " · " : ""}${last ? fmt(last.t) + " — " + esc(last.text) : "waiting for first event"}</span></div>
     </div>`;
   }).join("");
 }
@@ -158,7 +185,18 @@ function renderShots() {
       ).join("")
     : `<div class="empty">no screenshots yet — QA takes some after each playtest</div>`;
 }
-function renderAll() { renderAgents(); renderEvents(); renderGit(); renderShots(); }
+function renderAll() { renderAgents(); renderEvents(); renderGit(); renderShots(); updateLive(); }
+// LIVE while any agent has an open session (a fresh `start` without a `done`
+// yet); stale sessions (interrupted) don't count as live. The event-recency
+// fallback applies only to legacy runs that never wrote lifecycle events, so a
+// freshly closed session goes dark in the header too instead of lingering.
+function updateLive() {
+  const hasLifecycle = events.some((e) => e.type === "start" || e.type === "done");
+  const hot = agents.some((a) => stateOf(a.id) === "active") ||
+    (!hasLifecycle && events.some((e) => Date.now() - e.t < 30000));
+  $("#live").classList.toggle("on", hot);
+  $("#liveTxt").textContent = hot ? "LIVE" : "IDLE";
+}
 
 async function init() {
   const meta = await (await fetch("/api/bus")).json();
@@ -173,7 +211,7 @@ async function init() {
   const es = new EventSource("/events");
   const h = (t) => (m) => {
     const d = JSON.parse(m.data);
-    if (t === "bus") { events = d; renderEvents(); renderAgents(); }
+    if (t === "bus") { events = d; renderEvents(); renderAgents(); updateLive(); }
     if (t === "git") { git = d; renderGit(); }
     if (t === "shots") { shots = d; renderShots(); }
   };
@@ -185,13 +223,7 @@ async function init() {
     $("#prompt").textContent = d.prompt;
     $("#prompt2").textContent = d.prompt;
   });
-  setInterval(() => {
-    renderAgents();
-    renderGit();
-    const hot = events.some((e) => Date.now() - e.t < 30000);
-    $("#live").classList.toggle("on", hot);
-    $("#liveTxt").textContent = hot ? "LIVE" : "IDLE";
-  }, 5000);
+  setInterval(() => { renderAgents(); renderGit(); updateLive(); }, 5000);
 }
 $("#reload").onclick = () => { $("#game").src = "/game/?t=" + Date.now(); };
 $("#newtab").onclick = () => window.open("/game/", "_blank");

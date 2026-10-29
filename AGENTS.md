@@ -37,6 +37,15 @@ This repo is the "3-agent game studio" demo: architect/engineer/qa subagents
 monitored by the dashboard (`node web/server.mjs` → `:8790`).
 - The shared filesystem *is* the bus: log with `studio/bus/append.sh <agent> <type> "<text>"`;
   per-agent inboxes are in `studio/bus/in/`; design in `studio/plan.md`; bugs in `studio/bugs.md`.
+  Types: `start done info decision plan code fix bug test shot milestone verdict error`.
+- Every agent session is **bracketed on the bus**: each subagent writes a `start`
+  event as its first action and a `done` event as its last (protocol in
+  `.opencode/agents/*.md`); `scripts/studio.sh` brackets each `opencode run` the same
+  way. As orchestrator, when a subagent call returns, check that agent's last
+  lifecycle event — if it's still `start` (session left open, e.g. the agent died),
+  append `<agent> done "…"` yourself so the dashboard light resolves. The dashboard
+  lights follow these events: fresh `start` → light on for the whole run, `done` →
+  light off, `start` with no `done` after 30 min → steady amber (interrupted run).
 - Subagents never run git (orchestrator commits at phase boundaries).
 - QA's playtest driver: `node scripts/playtest.mjs` (headless Chrome over CDP, zero deps).
 - Headless replay of the whole build: `scripts/studio.sh "<brief>"`.

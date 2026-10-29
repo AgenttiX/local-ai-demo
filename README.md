@@ -42,10 +42,11 @@ runs the QA → fix → QA loop until the game passes. Meanwhile:
 node web/server.mjs        # → http://localhost:8790
 ```
 
-opens the **mission-control dashboard**: the three agents (model, GPU, live
-activity), the event stream from the studio bus, the git commit feed, the
-playable game in an iframe, and QA's screenshots — everything streaming live over
-SSE.
+opens the **mission-control dashboard**: the three agents (model, GPU, and a
+state light that tracks each session — on while running, off when done, amber
+if a run dies mid-session), the event stream from the studio bus, the git
+commit feed, the playable game in an iframe, and QA's screenshots — everything
+streaming live over SSE.
 
 ### Replay (fully headless)
 
@@ -84,8 +85,13 @@ Append events with the flock-serialized helper (safe across concurrent agents):
 
 ```
 studio/bus/append.sh <architect|engineer|qa|studio> <type> "<text>"
-# types: info decision plan code fix bug test shot milestone verdict error
+# types: start done info decision plan code fix bug test shot milestone verdict error
 ```
+
+Every agent session is bracketed with `start` (first action) and `done` (last
+action) events — written by the agents themselves and by `scripts/studio.sh`
+around each `opencode run`. These lifecycle events are what the dashboard's
+lights follow (see below).
 
 **Only the orchestrator runs git** — subagents never commit (avoids index-lock
 races); commits happen at phase boundaries, which also drives the dashboard's
@@ -105,6 +111,12 @@ One zero-dependency Node server (`web/server.mjs`, Node ≥ 18): serves the UI
 (`web/public/index.html`), the game (`/game`), and screenshots (`/shots/...`),
 and broadcasts bus events, git commits, and new screenshots over SSE
 (`/events`). No npm install, no build step.
+
+Each agent card has a state light driven by the bus lifecycle events: it
+**lights up** when the agent's session opens (`start`) and stays on for the
+whole run, **goes dark** when the session closes (`done`), and turns **steady
+amber** if a `start` never gets a `done` within 30 minutes (interrupted run).
+The header LIVE indicator is on while any agent has an open session.
 
 ### Playtest (`scripts/playtest.mjs`)
 

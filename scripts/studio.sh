@@ -23,6 +23,20 @@ QA="litellm/agx-z2e-rocm/google/gemma-4-26b-a4b-qat"
 
 say() { printf '\n\033[1;36m━━ %s\033[0m\n' "$*"; }
 role() { awk 'BEGIN{n=0} /^---[ \t]*$/{n++; next} n==1' "$1"; }
+# Run one studio agent session, bracketed by `start`/`done` bus events so the
+# dashboard lights reflect the session: on while the agent runs (no matter how
+# quiet it is), off when it ends — even if it fails.
+run_agent() {
+  local a="$1" m="$2" rc=0
+  studio/bus/append.sh "$a" start "session start: $a ($m)"
+  opencode run -m "$m" --auto "$(role ".opencode/agents/$a.md")" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    studio/bus/append.sh "$a" done "session end: $a"
+  else
+    studio/bus/append.sh "$a" done "session end: $a (opencode run failed, rc=$rc)"
+  fi
+  return "$rc"
+}
 
 echo "brief: $BRIEF"
 echo "dashboard: http://localhost:$PORT"
@@ -32,10 +46,10 @@ trap 'kill $SRV 2>/dev/null || true' EXIT
 sleep 0.5
 
 say "1/5  ARCHITECT  ($ARCH) — design the game"
-opencode run -m "$ARCH" --auto "$(role .opencode/agents/architect.md)"
+run_agent architect "$ARCH"
 
 say "2/5  ENGINEER   ($ENG) — first implementation"
-opencode run -m "$ENG" --auto "$(role .opencode/agents/engineer.md)"
+run_agent engineer "$ENG"
 
 PASS=""
 for round in $(seq 1 "$MAX_ROUNDS"); do
@@ -43,13 +57,13 @@ for round in $(seq 1 "$MAX_ROUNDS"); do
   mkdir -p /tmp/opencode
   node scripts/playtest.mjs --url "http://localhost:$PORT/game/" --out "studio/shots/replay-$round" > /tmp/opencode/pt-$round.json 2>&1
   pt_rc=$?
-  opencode run -m "$QA" --auto "$(role .opencode/agents/qa.md)"
+  run_agent qa "$QA"
   if [ "$pt_rc" -eq 0 ]; then
     PASS=$round
     break
   fi
   say "4/5  ENGINEER   — bug-fix round $round"
-  opencode run -m "$ENG" --auto "$(role .opencode/agents/engineer.md)"
+  run_agent engineer "$ENG"
 done
 
 say "5/5  finalize"
